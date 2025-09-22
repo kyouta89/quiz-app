@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>資格クイズアプリ</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="quiz-container">
+      <div id="quiz-view">
+        <div id="progress-container">
+          <p id="progress-text">QUESTION 1 OF 3</p>
+          <div id="progress-bar-full">
+            <div id="progress-bar-actual"></div>
+          </div>
+        </div>
+
+        <div id="question-area">
+          <h2 id="question">ここに問題文が表示されます。</h2>
+          <p id="sub-text">(Select all that apply)</p>
+        </div>
+
+        <div id="answers"></div>
+
+        <button id="submit-btn">SUBMIT ANSWER</button>
+
+        <div id="result-view" class="hidden">
+          <hr />
+          <h2 id="result-message"></h2>
+          <!--<p id="explanation"></p>-->
+          <div id="comment-area">
+            <h3>コメントタイムライン</h3>
+            <div id="comment-timeline"></div>
+
+            <textarea
+              id="comment-input"
+              placeholder="新しいコメントを追加..."
+            ></textarea>
+            <button id="comment-submit-btn">コメントを送信</button>
+            <p id="submit-status"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
