@@ -1,23 +1,22 @@
-const quizData = [
-  {
-    question: "Which of the following are programming languages?",
-    subText: "(Select all that apply)",
-    answers: ["Python", "HTML", "JavaScript", "Java"],
-    correct: ["Python", "JavaScript", "Java"],
-  },
-  {
-    question: "日本の首都は次のうちどれ？",
-    subText: "(Select one)",
-    answers: ["大阪", "京都", "東京", "福岡"],
-    correct: ["東京"],
-  },
-  {
-    question: "一番面積が大きい都道府県は？",
-    subText: "(Select one)",
-    answers: ["東京都", "沖縄県", "北海道", "京都府"],
-    correct: ["北海道"],
-  },
-];
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDybPVVNsPQ7uOmJCFOKbvawkvxiGgFDC4",
+  authDomain: "quiz-app-44460.firebaseapp.com",
+  projectId: "quiz-app-44460",
+  storageBucket: "quiz-app-44460.firebasestorage.app",
+  messagingSenderId: "144465216665",
+  appId: "1:144465216665:web:76ba9c93b50852ad6a6408",
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// --- グローバル変数 ---
+let quizData = [];
+let currentQuiz = 0;
+let score = 0;
+let isAnswerSubmitted = false;
 
 // --- HTMLの要素を取得 ---
 const quizContainer = document.getElementById("quiz-container");
@@ -34,25 +33,32 @@ const commentSubmitBtn = document.getElementById("comment-submit-btn");
 const submitStatus = document.getElementById("submit-status");
 const commentTimeline = document.getElementById("comment-timeline");
 
-// --- 変数の定義 ---
-let currentQuiz = 0;
-let score = 0;
-let isAnswerSubmitted = false;
-
 // --- 関数の定義 ---
+async function startApp() {
+  try {
+    const snapshot = await db.collection("quizzes").get();
+    snapshot.forEach((doc) => {
+      quizData.push(doc.data());
+    });
+
+    console.log("Firebaseから取得したデータ:", quizData);
+
+    loadQuiz();
+  } catch (error) {
+    console.error("Error fetching quizzes: ", error);
+    questionEl.innerText = "クイズの読み込みに失敗しました。";
+  }
+}
+
 function displayComments(questionIndex) {
   const timelineKey = `quiz_timeline_${questionIndex}`;
   const savedTimeline = localStorage.getItem(timelineKey);
   const comments = savedTimeline ? JSON.parse(savedTimeline) : [];
-
   commentTimeline.innerHTML = "";
-
   if (comments.length === 0) {
-    commentTimeline.innerHTML =
-      '<p style="color: #999; font-size: 12px; text-align: center;">まだコメントはありません。</p>';
+    commentTimeline.innerHTML = `<p style="color: #999; font-size: 12px; text-align: center;">まだコメントはありません。</p>`;
     return;
   }
-
   comments.forEach((comment) => {
     const entryDiv = document.createElement("div");
     entryDiv.classList.add("comment-entry");
@@ -78,7 +84,6 @@ function loadQuiz() {
   commentInput.value = "";
   submitStatus.innerText = "";
   commentTimeline.innerHTML = "";
-
   const currentQuizData = quizData[currentQuiz];
   progressText.innerText = `QUESTION ${currentQuiz + 1} OF ${quizData.length}`;
   progressBarActual.style.width = `${
@@ -87,7 +92,6 @@ function loadQuiz() {
   questionEl.innerText = currentQuizData.question;
   subTextEl.innerText = currentQuizData.subText;
   answersContainer.innerHTML = "";
-
   currentQuizData.answers.forEach((answerText) => {
     const answerDiv = document.createElement("div");
     answerDiv.classList.add("answer-option");
@@ -124,14 +128,18 @@ submitBtn.addEventListener("click", () => {
       alert("回答を選択してください。");
       return;
     }
-
     answersContainer.classList.add("disabled");
-    const selectedTexts = Array.from(selectedAnswers).map((el) => el.innerText);
+
+    // ▼▼▼ ここを修正！ .trim() を追加 ▼▼▼
+    const selectedTexts = Array.from(selectedAnswers).map((el) =>
+      el.innerText.trim()
+    );
     const correctAnswers = quizData[currentQuiz].correct;
 
     const isCorrect =
       selectedTexts.length === correctAnswers.length &&
-      selectedTexts.sort().join(",") === correctAnswers.sort().join(",");
+      [...selectedTexts].sort().join(",") ===
+        [...correctAnswers].sort().join(",");
 
     if (isCorrect) {
       score++;
@@ -141,7 +149,6 @@ submitBtn.addEventListener("click", () => {
       resultMessage.innerText = "不正解…";
       resultMessage.style.color = "#dc3545";
     }
-
     const allAnswerOptions = document.querySelectorAll(".answer-option");
     allAnswerOptions.forEach((option) => {
       const answerText = option.innerText;
@@ -155,7 +162,6 @@ submitBtn.addEventListener("click", () => {
         option.classList.add("incorrect-answer");
       }
     });
-
     displayComments(currentQuiz);
     resultView.classList.remove("hidden");
     isAnswerSubmitted = true;
@@ -165,25 +171,18 @@ submitBtn.addEventListener("click", () => {
 
 commentSubmitBtn.addEventListener("click", () => {
   const commentText = commentInput.value.trim();
-  if (commentText === "") {
-    return;
-  }
-
+  if (commentText === "") return;
   const timelineKey = `quiz_timeline_${currentQuiz}`;
   const savedTimeline = localStorage.getItem(timelineKey);
   const comments = savedTimeline ? JSON.parse(savedTimeline) : [];
-
   const newComment = {
     text: commentText,
     timestamp: new Date().toISOString(),
   };
-
   comments.push(newComment);
   localStorage.setItem(timelineKey, JSON.stringify(comments));
-
   commentInput.value = "";
   displayComments(currentQuiz);
-
   submitStatus.innerText = "コメントが追加されました！";
   setTimeout(() => {
     submitStatus.innerText = "";
@@ -191,4 +190,4 @@ commentSubmitBtn.addEventListener("click", () => {
 });
 
 // --- 初期化処理 ---
-loadQuiz();
+startApp();
