@@ -5,7 +5,7 @@ const firebaseConfig = {
   projectId: "quiz-app-44460",
   storageBucket: "quiz-app-44460.firebasestorage.app",
   messagingSenderId: "144465216665",
-  appId: "1:144465216665:web:76ba9c93b50852ad6a6408",
+  appId: "1:144465216665:web:76ba9c93b5085222d6a6408",
 };
 
 // Initialize Firebase
@@ -37,8 +37,10 @@ const commentTimeline = document.getElementById("comment-timeline");
 async function startApp() {
   try {
     const snapshot = await db.collection("quizzes").get();
+
+    // doc.id (Firebaseが自動で振ったID) を 'id' フィールドとして追加
     snapshot.forEach((doc) => {
-      quizData.push(doc.data());
+      quizData.push({ id: doc.id, ...doc.data() });
     });
 
     console.log("Firebaseから取得したデータ:", quizData);
@@ -50,29 +52,47 @@ async function startApp() {
   }
 }
 
-function displayComments(questionIndex) {
-  const timelineKey = `quiz_timeline_${questionIndex}`;
-  const savedTimeline = localStorage.getItem(timelineKey);
-  const comments = savedTimeline ? JSON.parse(savedTimeline) : [];
+async function displayComments(questionIndex) {
   commentTimeline.innerHTML = "";
-  if (comments.length === 0) {
-    commentTimeline.innerHTML = `<p style="color: #999; font-size: 12px; text-align: center;">まだコメントはありません。</p>`;
-    return;
+  const currentQuestion = quizData[questionIndex];
+  const questionIdentifier = currentQuestion.id; // 一意なIDを使用
+
+  try {
+    const snapshot = await db
+      .collection("comments")
+      .where("questionId", "==", questionIdentifier) // IDでフィルタリング
+      .orderBy("timestamp", "asc")
+      .get();
+
+    const comments = [];
+    snapshot.forEach((doc) => {
+      comments.push(doc.data());
+    });
+
+    if (comments.length === 0) {
+      commentTimeline.innerHTML = `<p style="color: #999; font-size: 12px; text-align: center;">まだコメントはありません。</p>`;
+      return;
+    }
+
+    comments.forEach((comment) => {
+      const entryDiv = document.createElement("div");
+      entryDiv.classList.add("comment-entry");
+      const textP = document.createElement("p");
+      textP.classList.add("comment-text");
+      textP.innerText = comment.text;
+      const timeSpan = document.createElement("span");
+      timeSpan.classList.add("comment-timestamp");
+      let date = comment.timestamp ? comment.timestamp.toDate() : new Date();
+      const formattedDate = date.toLocaleString("ja-JP");
+      timeSpan.innerText = formattedDate;
+      entryDiv.appendChild(textP);
+      entryDiv.appendChild(timeSpan);
+      commentTimeline.appendChild(entryDiv);
+    });
+  } catch (error) {
+    console.error("コメントの読み込みに失敗しました:", error);
+    commentTimeline.innerHTML = `<p style="color: red; font-size: 12px; text-align: center;">コメントの読み込み中にエラーが発生しました。</p>`;
   }
-  comments.forEach((comment) => {
-    const entryDiv = document.createElement("div");
-    entryDiv.classList.add("comment-entry");
-    const textP = document.createElement("p");
-    textP.classList.add("comment-text");
-    textP.innerText = comment.text;
-    const timeSpan = document.createElement("span");
-    timeSpan.classList.add("comment-timestamp");
-    const formattedDate = new Date(comment.timestamp).toLocaleString("ja-JP");
-    timeSpan.innerText = formattedDate;
-    entryDiv.appendChild(textP);
-    entryDiv.appendChild(timeSpan);
-    commentTimeline.appendChild(entryDiv);
-  });
 }
 
 function loadQuiz() {
@@ -112,7 +132,7 @@ function showResults() {
 }
 
 // --- イベントリスナーの設定 ---
-submitBtn.addEventListener("click", () => {
+submitBtn.addEventListener("click", async () => {
   if (isAnswerSubmitted) {
     currentQuiz++;
     if (currentQuiz < quizData.length) {
@@ -129,18 +149,14 @@ submitBtn.addEventListener("click", () => {
       return;
     }
     answersContainer.classList.add("disabled");
-
-    // ▼▼▼ ここを修正！ .trim() を追加 ▼▼▼
     const selectedTexts = Array.from(selectedAnswers).map((el) =>
       el.innerText.trim()
     );
     const correctAnswers = quizData[currentQuiz].correct;
-
     const isCorrect =
       selectedTexts.length === correctAnswers.length &&
       [...selectedTexts].sort().join(",") ===
         [...correctAnswers].sort().join(",");
-
     if (isCorrect) {
       score++;
       resultMessage.innerText = "正解！";
@@ -162,28 +178,44 @@ submitBtn.addEventListener("click", () => {
         option.classList.add("incorrect-answer");
       }
     });
-    displayComments(currentQuiz);
+    await displayComments(currentQuiz);
     resultView.classList.remove("hidden");
     isAnswerSubmitted = true;
     submitBtn.innerText = "NEXT QUESTION";
   }
 });
 
-commentSubmitBtn.addEventListener("click", () => {
-  const commentText = commentInput.value.trim();
-  if (commentText === "") return;
-  const timelineKey = `quiz_timeline_${currentQuiz}`;
-  const savedTimeline = localStorage.getItem(timelineKey);
-  const comments = savedTimeline ? JSON.parse(savedTimeline) : [];
-  const newComment = {
-    text: commentText,
-    timestamp: new Date().toISOString(),
-  };
-  comments.push(newComment);
-  localStorage.setItem(timelineKey, JSON.stringify(comments));
-  commentInput.value = "";
-  displayComments(currentQuiz);
-  submitStatus.innerText = "コメントが追加されました！";
+// ▼▼▼ コメント送信リスナー（修正済み） ▼▼▼
+commentSubmitBtn.addEventListener("click", async () => {
+  const commentText = commentInput.value.trim(); // ★修正：ここでテキストを取得！
+  if (commentText === "") {
+    submitStatus.innerText = "コメントを入力してください。";
+    setTimeout(() => {
+      submitStatus.innerText = "";
+    }, 2000);
+    return;
+  }
+
+  const currentQuestion = quizData[currentQuiz];
+  const questionIdentifier = currentQuestion.id; // 一意なIDを使用
+
+  try {
+    await db.collection("comments").add({
+      questionId: questionIdentifier, // ★IDで識別
+      text: commentText,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      // ユーザーIDなど、ログイン機能があれば追加できる
+    });
+
+    commentInput.value = "";
+    await displayComments(currentQuiz); // 再読み込み
+
+    submitStatus.innerText = "コメントが送信されました！";
+  } catch (error) {
+    console.error("コメントの送信に失敗しました:", error);
+    submitStatus.innerText = "コメントの送信に失敗しました。";
+  }
+
   setTimeout(() => {
     submitStatus.innerText = "";
   }, 2000);
