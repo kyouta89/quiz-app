@@ -1,15 +1,28 @@
 /* Google Fontsからフォントを読み込む（任意） */
 @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap");
 
+:root {
+  --primary-color: #20c997; /* メインの緑色 */
+  --primary-color-dark: #1baa80; /* マウスオーバー時の濃い緑色 */
+  --secondary-color: #555; /* サブカラー（コメントボタンなど） */
+  --secondary-color-dark: #333; /* サブカラーの濃い色 */
+  --correct-bg: #d4edda; /* 正解の背景色 */
+  --correct-border: #28a745; /* 正解の枠線色 */
+  --incorrect-bg: #f8d7da; /* 不正解の背景色 */
+  --incorrect-border: #dc3545; /* 不正解の枠線色 */
+  --text-color: #333; /* 基本の文字色 */
+  --background-color: #ffffff; /* 背景色 */
+  --light-gray: #f8f9fa; /* 明るい灰色（リスト背景など） */
+  --medium-gray: #dee2e6; /* 中間の灰色（リスト枠線など） */
+}
+
 /* ページ全体のスタイル */
 body {
   font-family: "Roboto", sans-serif;
-  background-color: #ffffff;
-  color: #333;
+  background-color: var(--background-color); /* ← 変数を使う */
+  color: var(--text-color); /* ← 変数を使う */
   display: flex;
   justify-content: center;
-  /* align-items: center;  ← 削除 */
-  /* height: 100vh;  ← 削除 */
   margin: 0;
 }
 
@@ -27,18 +40,18 @@ body {
 }
 #progress-text {
   font-size: 14px;
-  color: #555;
+  color: var(--secondary-color);
   margin-bottom: 8px;
 }
 #progress-bar-full {
   width: 100%;
   height: 4px;
-  background-color: #e0e0e0;
+  background-color: var(--medium-gray);
 }
 #progress-bar-actual {
   height: 100%;
   width: 10%; /* 最初は10%にしておく（後でJSで動かす） */
-  background-color: #20c997; /* デザインに近い緑色 */
+  background-color: var(--primary-color);
 }
 
 /* --- 問題文エリア --- */
@@ -64,7 +77,7 @@ body {
 /* --- 回答エリア（選択肢） --- */
 .answer-option {
   width: 100%;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--medium-gray);
   border-radius: 8px;
   padding: 12px 20px; /* 上下のパディングを少し減らし、左右のパディングを増やして余白を確保 */
   margin-bottom: 12px; /* 余白を調整 */
@@ -75,19 +88,19 @@ body {
 }
 
 .answer-option:hover {
-  border-color: #20c997; /* マウスを乗せたら緑色に */
+  border-color: var(--primary-color); /* マウスを乗せたら緑色に */
 }
 
 /* JavaScriptでつけ外しする「選択済み」スタイル */
 .answer-option.selected {
-  border-color: #20c997;
+  border-color: var(--primary-color);
   background-color: #e6f9f4;
 }
 
 /* --- 送信ボタン --- */
 #submit-btn {
   width: 100%;
-  background-color: #20c997;
+  background-color: var(--primary-color);
   color: white;
   border: none;
   border-radius: 8px;
@@ -100,7 +113,7 @@ body {
 }
 
 #submit-btn:hover {
-  background-color: #1baa80;
+  background-color: var(--primary-color-dark);
 }
 
 /* --- 結果表示画面のスタイル --- */
@@ -126,15 +139,15 @@ body {
 
 /* 正解の選択肢 */
 .answer-option.correct-answer {
-  background-color: #d4edda; /* 薄い緑 */
-  border-color: #28a745; /* 濃い緑 */
+  background-color: var(--correct-bg); /* 薄い緑 */
+  border-color: var(--correct-border); /* 濃い緑 */
   color: #155724;
 }
 
 /* 自分が選んで、かつ不正解だった選択肢 */
 .answer-option.incorrect-answer {
-  background-color: #f8d7da; /* 薄い赤 */
-  border-color: #dc3545; /* 濃い赤 */
+  background-color: var(--incorrect-bg); /* 薄い赤 */
+  border-color: var(--incorrect-border); /* 濃い赤 */
   color: #721c24;
   opacity: 0.8;
 }
@@ -163,7 +176,7 @@ body {
   margin-top: 0;
   margin-bottom: 10px;
   font-size: 18px;
-  color: #555;
+  color: var(--secondary-color);
 }
 
 #comment-input {
@@ -179,7 +192,7 @@ body {
 }
 
 #comment-submit-btn {
-  background-color: #555;
+  background-color: var(--secondary-color);
   color: white;
   border: none;
   border-radius: 5px;
@@ -190,12 +203,12 @@ body {
 }
 
 #comment-submit-btn:hover {
-  background-color: #333;
+  background-color: var(--secondary-color-dark);
 }
 
 #submit-status {
   font-size: 12px;
-  color: #28a745;
+  color: var(--correct-border);
   margin-top: 8px;
   height: 1em;
 }
@@ -227,4 +240,47 @@ body {
 .comment-timestamp {
   font-size: 10px;
   color: #888;
+}
+
+.selection-btn {
+  display: block;
+  width: 100%;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 18px;
+  margin-top: 20px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.selection-btn:hover {
+  background-color: var(--primary-color-dark);
+}
+
+#loading-message {
+  text-align: center;
+  color: #888;
+  padding: 40px 0;
+}
+
+.list-item {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  margin-bottom: 10px;
+  background-color: var(--light-gray);
+  border: 1px solid var(--medium-gray);
+  border-radius: 5px;
+  text-decoration: none;
+  color: var(--text-color);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.list-item:hover {
+  background-color: #e9ecef;
+  border-color: #ced4da;
 }

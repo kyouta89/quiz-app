@@ -1,4 +1,4 @@
-// Your web app's Firebase configuration
+// ===== Firebaseの接続設定 =====
 const firebaseConfig = {
   apiKey: "AIzaSyDybPVVNsPQ7uOmJCFOKbvawkvxiGgFDC4",
   authDomain: "quiz-app-44460.firebaseapp.com",
@@ -7,12 +7,10 @@ const firebaseConfig = {
   messagingSenderId: "144465216665",
   appId: "1:144465216665:web:76ba9c93b5085222d6a6408",
 };
-
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// --- グローバル変数 ---
+// ===== グローバル変数 =====
 let quizData = [];
 let currentQuiz = 0;
 let score = 0;
@@ -33,34 +31,62 @@ const commentSubmitBtn = document.getElementById("comment-submit-btn");
 const submitStatus = document.getElementById("submit-status");
 const commentTimeline = document.getElementById("comment-timeline");
 
-// --- 関数の定義 ---
-async function startApp() {
-  try {
-    const snapshot = await db.collection("quizzes").get();
+// ===== アプリの起動処理 =====
 
-    // doc.id (Firebaseが自動で振ったID) を 'id' フィールドとして追加
+async function startApp() {
+  // 1. localStorageからユーザーの選択を取得
+  const selectedPlatform = localStorage.getItem("selectedPlatform");
+  const selectedCertification = localStorage.getItem("selectedCertification");
+
+  // もし情報がなければ、スタートページに戻す
+  if (!selectedPlatform || !selectedCertification) {
+    alert("情報が不足しています。最初のページからやり直してください。");
+    window.location.href = "start.html";
+    return;
+  }
+
+  try {
+    // 2. 選択された条件でFirebaseから問題を取得
+    const snapshot = await db
+      .collection("quizzes")
+      .where("platform", "==", selectedPlatform)
+      .where("certification", "==", selectedCertification)
+      .get();
+
     snapshot.forEach((doc) => {
       quizData.push({ id: doc.id, ...doc.data() });
     });
 
-    console.log("Firebaseから取得したデータ:", quizData);
+    // 3. 何問目から始めるかを決定
+    const startIndex = localStorage.getItem("startQuizIndex");
+    if (startIndex) {
+      currentQuiz = parseInt(startIndex, 10); // 文字列を数値に変換
+      localStorage.removeItem("startQuizIndex"); // 一度使ったら消しておく
+    } else {
+      currentQuiz = 0; // 指定がなければ最初から
+    }
 
-    loadQuiz();
+    loadQuiz(); // 準備ができたので、指定された問題からクイズを開始
   } catch (error) {
     console.error("Error fetching quizzes: ", error);
     questionEl.innerText = "クイズの読み込みに失敗しました。";
   }
 }
 
+// ===== 関数の定義 =====
+// (displayComments, loadQuiz, showResults, イベントリスナーのコードは
+//  以前の完成版から一切変更ありません。以下にそのまま貼り付けます)
+
 async function displayComments(questionIndex) {
   commentTimeline.innerHTML = "";
   const currentQuestion = quizData[questionIndex];
-  const questionIdentifier = currentQuestion.id; // 一意なIDを使用
+  if (!currentQuestion) return;
+  const questionIdentifier = currentQuestion.id;
 
   try {
     const snapshot = await db
       .collection("comments")
-      .where("questionId", "==", questionIdentifier) // IDでフィルタリング
+      .where("questionId", "==", questionIdentifier)
       .orderBy("timestamp", "asc")
       .get();
 
@@ -131,7 +157,6 @@ function showResults() {
     `;
 }
 
-// --- イベントリスナーの設定 ---
 submitBtn.addEventListener("click", async () => {
   if (isAnswerSubmitted) {
     currentQuiz++;
@@ -157,6 +182,7 @@ submitBtn.addEventListener("click", async () => {
       selectedTexts.length === correctAnswers.length &&
       [...selectedTexts].sort().join(",") ===
         [...correctAnswers].sort().join(",");
+
     if (isCorrect) {
       score++;
       resultMessage.innerText = "正解！";
@@ -165,6 +191,7 @@ submitBtn.addEventListener("click", async () => {
       resultMessage.innerText = "不正解…";
       resultMessage.style.color = "#dc3545";
     }
+
     const allAnswerOptions = document.querySelectorAll(".answer-option");
     allAnswerOptions.forEach((option) => {
       const answerText = option.innerText;
@@ -178,6 +205,7 @@ submitBtn.addEventListener("click", async () => {
         option.classList.add("incorrect-answer");
       }
     });
+
     await displayComments(currentQuiz);
     resultView.classList.remove("hidden");
     isAnswerSubmitted = true;
@@ -185,41 +213,28 @@ submitBtn.addEventListener("click", async () => {
   }
 });
 
-// ▼▼▼ コメント送信リスナー（修正済み） ▼▼▼
 commentSubmitBtn.addEventListener("click", async () => {
-  const commentText = commentInput.value.trim(); // ★修正：ここでテキストを取得！
-  if (commentText === "") {
-    submitStatus.innerText = "コメントを入力してください。";
-    setTimeout(() => {
-      submitStatus.innerText = "";
-    }, 2000);
-    return;
-  }
-
+  const commentText = commentInput.value.trim();
+  if (commentText === "") return;
   const currentQuestion = quizData[currentQuiz];
-  const questionIdentifier = currentQuestion.id; // 一意なIDを使用
-
+  const questionIdentifier = currentQuestion.id;
   try {
     await db.collection("comments").add({
-      questionId: questionIdentifier, // ★IDで識別
+      questionId: questionIdentifier,
       text: commentText,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      // ユーザーIDなど、ログイン機能があれば追加できる
     });
-
     commentInput.value = "";
-    await displayComments(currentQuiz); // 再読み込み
-
+    await displayComments(currentQuiz);
     submitStatus.innerText = "コメントが送信されました！";
   } catch (error) {
     console.error("コメントの送信に失敗しました:", error);
     submitStatus.innerText = "コメントの送信に失敗しました。";
   }
-
   setTimeout(() => {
     submitStatus.innerText = "";
   }, 2000);
 });
 
-// --- 初期化処理 ---
+// ===== 初期化処理 =====
 startApp();

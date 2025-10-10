@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>クイズアプリ - 問題一覧</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="quiz-container">
+      <h1>問題一覧</h1>
+      <p id="list-description"></p>
+
+      <div id="loading-message">問題を読み込み中...</div>
+
+      <div id="question-list"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script src="list.js"></script>
+  </body>
+</html>
